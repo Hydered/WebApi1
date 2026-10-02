@@ -1,0 +1,142 @@
+﻿@baseUrl = http://localhost:56876
+@activeProjectId = 2
+@createdProjectId = {{createProject.response.body.$.Id}}
+@createdTaskId = {{createTask.response.body.$.Id}}
+@statusTaskId = {{createTask.response.body.$.Id}}
+@deleteTaskId = {{createTaskForDelete.response.body.$.Id}}
+
+### Получить все проекты (ожидается 200)
+GET {{baseUrl}}/api/projects
+
+### Проект не найден (ожидается 404)
+GET {{baseUrl}}/api/projects/999
+
+### Создать проект (ожидается 201)
+# @name createProject
+POST {{baseUrl}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "API test {{$guid}}",
+  "owner": "Тестовый пользователь"
+}
+
+### Создать проект без имени (ожидается 400)
+POST {{baseUrl}}/api/projects
+Content-Type: application/json
+
+{
+  "name": " ",
+  "owner": "Тестовый пользователь"
+}
+
+### Создать проект с уже существующим именем (ожидается 409)
+POST {{baseUrl}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Корпоративный портал",
+  "owner": "Тестовый пользователь"
+}
+
+### Архивировать созданный проект (ожидается 204)
+PUT {{baseUrl}}/api/projects/{{createdProjectId}}/archive
+
+### Повторно архивировать проект (ожидается 409)
+PUT {{baseUrl}}/api/projects/{{createdProjectId}}/archive
+
+### Создать задачу в архивном проекте (ожидается 409)
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "projectId": {{createdProjectId}},
+  "title": "Задача в архивном проекте",
+  "description": "Эта задача должна быть отклонена",
+  "priority": 2
+}
+
+### Статистика созданного проекта (ожидается 200)
+GET {{baseUrl}}/api/projects/{{createdProjectId}}/stats
+
+### Создать задачу (ожидается 201)
+# @name createTask
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "projectId": {{activeProjectId}},
+  "title": "Проверить API",
+  "description": "Задача для проверки запросов через HTTP файл",
+  "priority": 3,
+  "dueDate": "2099-12-31"
+}
+
+### Получить задачу по ID из ответа создания (ожидается 200)
+GET {{baseUrl}}/api/tasks/{{createdTaskId}}
+
+### Получить задачи проекта (ожидается 200)
+GET {{baseUrl}}/api/projects/{{activeProjectId}}/tasks
+
+### Получить все задачи без фильтров (ожидается 200)
+GET {{baseUrl}}/api/tasks
+
+### Фильтр по статусу, приоритету и проекту (ожидается 200)
+GET {{baseUrl}}/api/tasks?status=New&priority=3&projectId={{activeProjectId}}
+
+### Поиск по части названия или описания (ожидается 200)
+GET {{baseUrl}}/api/tasks?search=авторизац
+
+### Некорректный приоритет в фильтре (ожидается 400)
+GET {{baseUrl}}/api/tasks?priority=9
+
+### Неизвестный статус в фильтре (ожидается 400)
+GET {{baseUrl}}/api/tasks?status=Unknown
+
+### Полностью изменить задачу (ожидается 200)
+PUT {{baseUrl}}/api/tasks/{{createdTaskId}}
+Content-Type: application/json
+
+{
+  "title": "Обновленная задача",
+  "description": "Обновленное описание задачи для проверки",
+  "priority": 4,
+  "dueDate": "2099-12-30"
+}
+
+### Перевести задачу New -> InProgress (ожидается 200)
+PUT {{baseUrl}}/api/tasks/{{statusTaskId}}/status
+Content-Type: application/json
+
+{
+  "status": "InProgress"
+}
+
+### Запрещенный переход InProgress -> New (ожидается 409)
+PUT {{baseUrl}}/api/tasks/{{statusTaskId}}/status
+Content-Type: application/json
+
+{
+  "status": "New"
+}
+
+### Удалить задачу InProgress (ожидается 409)
+DELETE {{baseUrl}}/api/tasks/{{statusTaskId}}
+
+### Просроченные задачи (ожидается 200)
+GET {{baseUrl}}/api/tasks/overdue
+
+### Создать задачу для успешного удаления (ожидается 201)
+# @name createTaskForDelete
+POST {{baseUrl}}/api/tasks
+Content-Type: application/json
+
+{
+  "projectId": {{activeProjectId}},
+  "title": "Задача на удаление",
+  "description": "Временная задача для проверки удаления",
+  "priority": 1
+}
+
+### Удалить обычную задачу (ожидается 204)
+DELETE {{baseUrl}}/api/tasks/{{deleteTaskId}}
